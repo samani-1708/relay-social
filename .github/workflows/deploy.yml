@@ -5,8 +5,8 @@ on:
     branches: [main]
 
 env:
-  REGION: asia-south1            # change to your GCE region
-  ZONE: asia-south1-a            # change to your GCE zone
+  REGION: us-central1
+  ZONE: us-central1-f
   INSTANCE: relayman-vm          # change to your GCE instance name
   DEPLOY_PATH: /opt/relayman     # path on the VM where the repo is cloned
 
