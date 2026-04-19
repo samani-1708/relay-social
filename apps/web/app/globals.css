@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+body {
+  margin: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* ── Relay brand CSS variables ─────────────────────────────────��────
+   Driven by data-theme on <html> (set by the blocking script in layout.tsx
+   before React hydrates). Using CSS vars means server and client render
+   identical HTML — no hydration mismatch from theme-sensitive values.
+   ------------------------------------------------------------------ */
+:root,
+[data-theme="light"] {
+  --relay-box-bg: #18181B;  /* text.primary in light */
+  --relay-box-fg: #FFFFFF;  /* primary.contrastText in light */
+}
+
+[data-theme="dark"] {
+  --relay-box-bg: #FAFAFA;  /* text.primary in dark */
+  --relay-box-fg: #09090B;  /* primary.contrastText in dark */
+}
+
+/* ── Platform logo theme adaptation ────────────────────────────────
+   Monochrome logos (X, Threads, TikTok) are black SVG paths on a
+   transparent canvas. Invert them wherever the background is dark.
+   ------------------------------------------------------------------ */
+
+/* Dark mode: invert on normal (light) backgrounds */
+[data-theme="dark"] .platform-logo-mono {
+  filter: invert(1);
+}
+
+/* Selected chip: background = text.primary = dark in light mode → needs inversion */
+.logo-selected .platform-logo-mono {
+  filter: invert(1);
+}
+
+/* Dark mode + selected: text.primary = #FAFAFA (light bg) → logo is already black, cancel */
+[data-theme="dark"] .logo-selected .platform-logo-mono {
+  filter: none;
+}

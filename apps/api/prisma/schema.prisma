@@ -1,0 +1,168 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Platform {
+  TWITTER
+  BLUESKY
+  THREADS
+  LINKEDIN
+  INSTAGRAM
+  FACEBOOK
+  MASTODON
+  SHARECHAT
+  YOUTUBE
+  TIKTOK
+}
+
+enum PostStatus {
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+}
+
+enum BroadcastStatus {
+  PENDING
+  QUEUED
+  SENT
+  FAILED
+  SKIPPED
+}
+
+model User {
+  id                String            @id @default(cuid())
+  email             String            @unique
+  name              String?
+  avatar            String?
+  passwordHash      String?
+  googleId          String?           @unique
+  emailVerified     Boolean           @default(false)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  accounts          PlatformAccount[]
+  posts             Post[]
+  settings          UserSettings?
+  notifications     Notification[]
+
+  @@map("users")
+}
+
+model PlatformAccount {
+  id                String          @id @default(cuid())
+  userId            String
+  platform          Platform
+  accessToken       String          // AES-256-GCM encrypted
+  refreshToken      String?         // AES-256-GCM encrypted
+  tokenExpiresAt    DateTime?
+  platformUserId    String
+  platformUsername  String
+  platformAvatar    String?
+  isOrigin          Boolean         @default(false)
+  isTarget          Boolean         @default(false)
+  isActive          Boolean         @default(true)
+  instanceUrl       String?         // Mastodon: e.g. https://mastodon.social
+  lastPolledAt      DateTime?
+  lastSeenPostId    String?
+  metadata          Json?           // encrypted client secrets, platform extras
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  broadcastJobs     BroadcastJob[]
+
+  @@unique([userId, platform, platformUserId])
+  @@map("platform_accounts")
+}
+
+model OAuthState {
+  id          String   @id @default(cuid())
+  key         String   @unique  // opaque random token used as OAuth state param
+  userId      String
+  platform    String
+  payload     Json     // { codeVerifier?, instanceUrl?, clientId?, clientSecret?, targetPlatform? }
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  @@map("oauth_states")
+}
+
+model Post {
+  id                String          @id @default(cuid())
+  userId            String
+  originContent     String
+  originPlatform    Platform?       // null when source = "editor" with relayman as origin
+  originPostId      String?
+  originMediaUrls   String[]
+  skipBroadcast     Boolean         @default(false)
+  status            PostStatus      @default(PENDING)
+  source            String          @default("origin") // "origin" | "editor"
+  scheduledAt       DateTime?       // null = immediate; future = scheduled post
+  processedAt       DateTime?
+  createdAt         DateTime        @default(now())
+
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  broadcastJobs     BroadcastJob[]
+
+  // Prevents duplicate ingestion if two workers race on the same originPostId
+  @@unique([userId, originPostId])
+  @@map("posts")
+}
+
+model BroadcastJob {
+  id                String          @id @default(cuid())
+  postId            String
+  targetPlatform    Platform
+  targetAccountId   String
+  status            BroadcastStatus @default(PENDING)
+  adaptedContent    String?
+  sentPostIds       String[]
+  errorMessage      String?
+  retryCount        Int             @default(0)
+  sentAt            DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  post              Post            @relation(fields: [postId], references: [id], onDelete: Cascade)
+  targetAccount     PlatformAccount @relation(fields: [targetAccountId], references: [id], onDelete: Cascade)
+
+  @@map("broadcast_jobs")
+}
+
+model UserSettings {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  skipHashtag           String   @default("#nosync")
+  emailNotifications    Boolean  @default(true)
+  emailOnFailureOnly    Boolean  @default(true)
+  pollingIntervalSecs   Int      @default(60)
+  pollingEnabled        Boolean  @default(true)
+  targetPlatforms       String[] @default([]) // empty = broadcast to all connected targets
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  metadata  Json?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}

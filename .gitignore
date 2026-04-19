@@ -1,0 +1,10 @@
+node_modules
+.env
+.env.local
+.turbo
+dist
+.next
+build
+*.log
+.DS_Store
+prisma/migrations/.migration_lock

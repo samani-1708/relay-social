@@ -1,0 +1,23 @@
+{
+  "name": "relayman",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "db:migrate": "turbo run db:migrate",
+    "db:generate": "turbo run db:generate"
+  },
+  "devDependencies": {
+    "dotenv-cli": "^11.0.0",
+    "turbo": "^2.3.3"
+  },
+  "packageManager": "npm@10.9.4",
+  "engines": {
+    "node": ">=20"
+  }
+}
